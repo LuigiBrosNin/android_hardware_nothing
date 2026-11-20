@@ -35,6 +35,7 @@ public final class AnimationManager {
 
     private static final String TAG = "GlyphAnimationManager";
     private static final boolean DEBUG = true;
+    private static final ExecutorService VISUALIZER_EXECUTOR = Executors.newSingleThreadExecutor();
 
     private static Future<?> submit(Runnable runnable) {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -386,7 +387,8 @@ public final class AnimationManager {
         updateLedFrame(floatPattern);
     }
 
-    private static void updateLedFrame(float[] pattern) {
+    // INFO made public because MusicVisualizer works with floats, and i don't want to convert back and forth between int and float
+    public static void updateLedFrame(float[] pattern) {
         //if (DEBUG) Log.d(TAG, "Updating pattern: " + pattern);
         float maxBrightness = (float) Constants.getMaxBrightness();
         int essentialLed = ResourceUtils.getInteger("glyph_settings_notifs_essential_led");
@@ -426,4 +428,14 @@ public final class AnimationManager {
         }
         FileUtils.writeSingleLed(led, brightness / maxBrightness * Constants.getBrightness());
     }
+
+    // music frame helper
+    public static void updateVisualizerFrame(float[] frame) {
+            if (frame == null) return;
+            if (StatusManager.isAllLedActive() || StatusManager.isCallLedActive() || StatusManager.isAnimationActive()) {
+                return;
+            }
+            float[] copy = Arrays.copyOf(frame, frame.length);
+            VISUALIZER_EXECUTOR.submit(() -> updateLedFrame(copy));
+        }
 }
